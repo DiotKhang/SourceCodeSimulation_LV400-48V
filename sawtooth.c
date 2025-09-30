@@ -1,28 +1,24 @@
 #define fsampling		50000 // 50kHz
 #define COUNT_UP        1
-#define COUNT_DOWN      2
+#define COUNT_DOWN      0
 
 //------------------------------------
-//-------------- INPUT ---------------
+//------------- INPUTS -------------
 //------------------------------------
-long double f_sample = 1/delt;
-long double PWM_frequency = x1;
+long double CLOCK_CYCLE_FREQUENCY = 1 / delt;
+long double PWM_FREQUENCY = x1;
 
 //------------------------------------
-//---------- DEFINEATIONS ------------
+//------- DEFINEATIONS ---------
 //------------------------------------
-static int countTs = 0;
-static int interruptCnt = 0;
-static int interruptCntMax = 0;
-static long PWM_TsCnt = 0;
 static int PWM_Cnt = 0;
 static int PWM_Cnt_dir = 0;
-static int PWM_Update = 0;
 
-//------------- SAWTOOTH -------------
-float PWM_Ts = 1 / PWM_frequency;
-PWM_TsCnt = (long)((PWM_Ts / delt) / 2);
-if (PWM_Cnt >= PWM_TsCnt)
+//------------------------------------
+//---------- SAWTOOTH ----------
+//------------------------------------
+long PWM_TBPRD_MAX = (long)(CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2);
+if (PWM_Cnt >= PWM_TBPRD_MAX)
 {
 	PWM_Cnt_dir = COUNT_DOWN;
 }
@@ -30,15 +26,15 @@ else if (PWM_Cnt <= 0)
 {
 	PWM_Cnt_dir = COUNT_UP;
 }
-if (PWM_Cnt_dir == 1) {
+if (PWM_Cnt_dir == COUNT_UP) {
 	PWM_Cnt++;
 }
-if (PWM_Cnt_dir == 0) {
+if (PWM_Cnt_dir == COUNT_DOWN) {
 	PWM_Cnt--;
 }
+
 //------------------------------------
-//-------------- OUTPUT --------------
+//---------- OUTPUTS -------------
 //------------------------------------
-y1 = PWM_Cnt;
-y2 = delt;
-y3 = PWM_Ts;
+y1 = (float)PWM_Cnt / (float)TBPRD_MAX;
+y2 = PWM_Cnt;
