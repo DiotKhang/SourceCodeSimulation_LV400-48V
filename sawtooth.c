@@ -36,5 +36,5 @@ if (PWM_Cnt_dir == COUNT_DOWN) {
 //------------------------------------
 //---------- OUTPUTS -------------
 //------------------------------------
-y1 = (float)PWM_Cnt / (float)TBPRD_MAX;
+y1 = (float)PWM_Cnt / (float)PWM_TBPRD_MAX;
 y2 = PWM_Cnt;
