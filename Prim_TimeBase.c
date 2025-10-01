@@ -1,6 +1,6 @@
 #define COUNT_UP 1
 #define COUNT_DOWN 0
-#define PRECHARGE_TIME 0.02 // seconds
+#define PRECHARGE_TIME 0.025 // seconds
 #define SAMPLING_FREQUENCY 1E5 // 100 kHz
 static int INITIAL = 1;
 //--------------
@@ -8,16 +8,18 @@ static int INITIAL = 1;
 //--------------
 long double CLOCK_CYCLE_FREQUENCY = 1 / delt;
 long double PWM_FREQUENCY = x1;
-
+if (PWM_FREQUENCY <= 0) PWM_FREQUENCY = SAMPLING_FREQUENCY;
 //-------------------
 //--- DEFINITIONS ---
 //-------------------
 // Pre-Charge
-static long PWM_TBPRD, PRECHARGE_MAX_COUNT;
+static long PRECHARGE_MAX_COUNT;
 static long PreCharge_Count;
 // Time Base
 static int PWM_Count_PrimLeg1 = 0, PWM_Count_PrimLeg2 = 0, PWM_Count_Dir_PrimLeg1 = 0, PWM_Count_Dir_PrimLeg2 = 0;
 static long Phase_PrimLeg = 0, Pre_Phase_PrimLeg = 0;
+static long PWM_TBPRD = 0;
+static long Pre_PWM_FREQUENCY = 0;
 // Interrupt
 static double ISR_COUNT_MAX = 0, ISR_Count = 0;
 static int ISR = 0;
@@ -63,14 +65,11 @@ if ((Pre_Phase_PrimLeg != Phase_PrimLeg) && (PWM_Count_PrimLeg1 == Phase_PrimLeg
 }
 
 //--- UPDATE FREQUENCY MODULE --- //This condition happens when previous frequency is different from present frequency
-// if (Enable_Frequency_Change == 1)		
-// {
-// 	if (PWM_Count_PrimLeg1 == 0) && (PWM_Count_Dir_PrimLeg1 == COUNT_UP)
-// 	{
-// 		Enable_Frequency_Change = 0;
-// 		PWM_TBPRD = (CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2);
-// 	}
-// }
+if ((Pre_PWM_FREQUENCY != PWM_FREQUENCY) && (PWM_Count_PrimLeg1 == 0) && (PWM_Count_Dir_PrimLeg1 == COUNT_DOWN) && (PreCharge_Count <= 0))
+{
+	Pre_PWM_FREQUENCY = PWM_FREQUENCY;
+	PWM_TBPRD = (CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2);
+}
 
 //--- TIMEBASE LEG1 ---
 if (PWM_Count_PrimLeg1 >= PWM_TBPRD) PWM_Count_Dir_PrimLeg1 = COUNT_DOWN;
@@ -91,4 +90,4 @@ y1 = (float)PWM_Count_PrimLeg1 / (float)PWM_TBPRD;
 y2 = (float)PWM_Count_PrimLeg2 / (float)PWM_TBPRD;
 y3 = Phase_PrimLeg;
 y4 = PreCharge_Count;
-y5 = PRECHARGE_MAX_COUNT;
+y5 = PWM_FREQUENCY;
