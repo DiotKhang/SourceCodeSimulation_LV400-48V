@@ -1,31 +1,42 @@
 #define COUNT_UP 1
 #define COUNT_DOWN 0
 #define PRECHARGE_TIME 0.02 // seconds
-#define SAMPLING_FREQUENCY 100000 // 100 kHz
-
-//------------------------------------
-//---------- INPUTS -----------
-//------------------------------------
+#define SAMPLING_FREQUENCY 1E5 // 100 kHz
+static int INITIAL = 1;
+//--------------
+//--- INPUTs ---
+//--------------
 long double CLOCK_CYCLE_FREQUENCY = 1 / delt;
 long double PWM_FREQUENCY = x1;
-// long double PWM_PHASE_SHIFT = x2; // Degree
 
-//------------------------------------
-//------- DEFINITIONS ----------
-//------------------------------------
-long double PWM_TBPRD_MAX = (CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2);
-long double PRECHARGE_MAX = (SAMPLING_FREQUENCY * PRECHARGE_TIME);
-static int PWM_Count_PrimLeg1 = 0, PWM_Count_PrimLeg2 = 0;
-static int PWM_Count_dir_PrimLeg1 = 0, PWM_Count_dir_PrimLeg2 = 0;
-static long PreCharge_Count = 0;
-static long Phase_PrimLeg = 0;
-static int Enable_PhaseShift = 0;
+//-------------------
+//--- DEFINITIONS ---
+//-------------------
+// Pre-Charge
+static long PWM_TBPRD, PRECHARGE_MAX_COUNT;
+static long PreCharge_Count;
+// Time Base
+static int PWM_Count_PrimLeg1 = 0, PWM_Count_PrimLeg2 = 0, PWM_Count_Dir_PrimLeg1 = 0, PWM_Count_Dir_PrimLeg2 = 0;
+static long Phase_PrimLeg = 0, Pre_Phase_PrimLeg = 0;
+// Interrupt
 static double ISR_COUNT_MAX = 0, ISR_Count = 0;
 static int ISR = 0;
+// Check
 static int check = 0;
-ISR_COUNT_MAX = 1 / (SAMPLING_FREQUENCY * delt);
 
-//-------- ISR HAPPEN ----------
+//---------------
+//--- INITIAL ---
+//---------------
+if (INITIAL == 1)
+{
+	INITIAL = 0;
+	ISR_COUNT_MAX = 1 / (SAMPLING_FREQUENCY * delt);
+	PWM_TBPRD = CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2;
+	PRECHARGE_MAX_COUNT = SAMPLING_FREQUENCY * PRECHARGE_TIME;
+	PreCharge_Count = PRECHARGE_MAX_COUNT;
+}
+
+//--- ISR HAPPEN ---
 ISR_Count++;
 if (ISR_Count > ISR_COUNT_MAX)
 {
@@ -36,42 +47,48 @@ else ISR = 0;
 
 if (ISR == 1)
 {
-	// PHASE-SHIFT RAMP-UP
-	if (PreCharge_Count < PRECHARGE_MAX) 
+	// Phase-Shift ramp up
+	if (PreCharge_Count > 0) 
 	{
-		Enable_PhaseShift = 1;
-		PreCharge_Count++;
-		Phase_PrimLeg = (PRECHARGE_MAX - PreCharge_Count) * PWM_TBPRD_MAX / PRECHARGE_MAX;
+		PreCharge_Count--;
+		Phase_PrimLeg = PreCharge_Count * PWM_TBPRD / PRECHARGE_MAX_COUNT;
 	}
 }
 
-//--- PHASE SHIFT MODULE -----
-if (Enable_PhaseShift == 1)
+//--- UPDATE PHASE SHIFT MODULE --- //This condition happens when previous phase is different from present phase
+if ((Pre_Phase_PrimLeg != Phase_PrimLeg) && (PWM_Count_PrimLeg1 == Phase_PrimLeg))
 {
-	if (PWM_Count_PrimLeg1 == Phase_PrimLeg)
-	{
-		PWM_Count_PrimLeg2 = 0;
-		Enable_PhaseShift = 0;
-	}
+	Pre_Phase_PrimLeg = Phase_PrimLeg;
+	PWM_Count_PrimLeg2 = 0;
 }
 
-//------ SAWTOOTH LEG1 -------
-if (PWM_Count_PrimLeg1 >= PWM_TBPRD_MAX) PWM_Count_dir_PrimLeg1 = COUNT_DOWN;
-else if (PWM_Count_PrimLeg1 <= 0) PWM_Count_dir_PrimLeg1 = COUNT_UP;
-if (PWM_Count_dir_PrimLeg1 == COUNT_UP) PWM_Count_PrimLeg1++;
-if (PWM_Count_dir_PrimLeg1 == COUNT_DOWN) PWM_Count_PrimLeg1--;
+//--- UPDATE FREQUENCY MODULE --- //This condition happens when previous frequency is different from present frequency
+// if (Enable_Frequency_Change == 1)		
+// {
+// 	if (PWM_Count_PrimLeg1 == 0) && (PWM_Count_Dir_PrimLeg1 == COUNT_UP)
+// 	{
+// 		Enable_Frequency_Change = 0;
+// 		PWM_TBPRD = (CLOCK_CYCLE_FREQUENCY / PWM_FREQUENCY / 2);
+// 	}
+// }
 
-//-------- SAWTOOTH LEG2 -----
-if (PWM_Count_PrimLeg2 >= PWM_TBPRD_MAX) PWM_Count_dir_PrimLeg2 = COUNT_DOWN;
-else if (PWM_Count_PrimLeg2 <= 0) PWM_Count_dir_PrimLeg2 = COUNT_UP;
-if (PWM_Count_dir_PrimLeg2 == COUNT_UP) PWM_Count_PrimLeg2++;
-if (PWM_Count_dir_PrimLeg2 == COUNT_DOWN) PWM_Count_PrimLeg2--;
+//--- TIMEBASE LEG1 ---
+if (PWM_Count_PrimLeg1 >= PWM_TBPRD) PWM_Count_Dir_PrimLeg1 = COUNT_DOWN;
+else if (PWM_Count_PrimLeg1 <= 0) PWM_Count_Dir_PrimLeg1 = COUNT_UP;
+if (PWM_Count_Dir_PrimLeg1 == COUNT_UP) PWM_Count_PrimLeg1++;
+if (PWM_Count_Dir_PrimLeg1 == COUNT_DOWN) PWM_Count_PrimLeg1--;
 
-//------------------------------------
-//---------- OUTPUTS -------------
-//------------------------------------
-y1 = (float)PWM_Count_PrimLeg1 / (float)PWM_TBPRD_MAX;
-y2 = (float)PWM_Count_PrimLeg2 / (float)PWM_TBPRD_MAX;
+//--- TIMEBASE LEG2 ---
+if (PWM_Count_PrimLeg2 >= PWM_TBPRD) PWM_Count_Dir_PrimLeg2 = COUNT_DOWN;
+else if (PWM_Count_PrimLeg2 <= 0) PWM_Count_Dir_PrimLeg2 = COUNT_UP;
+if (PWM_Count_Dir_PrimLeg2 == COUNT_UP) PWM_Count_PrimLeg2++;
+if (PWM_Count_Dir_PrimLeg2 == COUNT_DOWN) PWM_Count_PrimLeg2--;
+
+//---------------
+//--- OUTPUTs ---
+//---------------
+y1 = (float)PWM_Count_PrimLeg1 / (float)PWM_TBPRD;
+y2 = (float)PWM_Count_PrimLeg2 / (float)PWM_TBPRD;
 y3 = Phase_PrimLeg;
 y4 = PreCharge_Count;
-y5 = PRECHARGE_MAX;
+y5 = PRECHARGE_MAX_COUNT;
