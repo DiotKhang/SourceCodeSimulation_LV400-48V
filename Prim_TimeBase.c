@@ -19,7 +19,7 @@ static int PWM_Count_PrimLeg1 = 0, PWM_Count_PrimLeg2 = 0;
 static int PWM_Count_dir_PrimLeg1 = 0, PWM_Count_dir_PrimLeg2 = 0;
 static long PreCharge_Count = 0;
 static long Phase_PrimLeg = 0;
-static int Enable_PhaseShift = 0, Enable_PreCharge = 0;
+static int Enable_PhaseShift = 0;
 static double ISR_COUNT_MAX = 0, ISR_Count = 0;
 static int ISR = 0;
 static int check = 0;
@@ -37,10 +37,7 @@ else ISR = 0;
 if (ISR == 1)
 {
 	// PHASE-SHIFT RAMP-UP
-	if (PreCharge_Count >= PRECHARGE_MAX) Enable_PreCharge = 0;
-	else Enable_PreCharge = 1;
-
-	if (Enable_PreCharge == 1)
+	if (PreCharge_Count < PRECHARGE_MAX) 
 	{
 		Enable_PhaseShift = 1;
 		PreCharge_Count++;
