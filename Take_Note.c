@@ -143,16 +143,7 @@ static inline void CLLLC_runISR2_primToSecPowerFlow(void)
         CLLLC_gv.d2 = CLLLC_gvError;
         CLLLC_gv.d3 = CLLLC_gvError;
         CLLLC_gvPartialComputedValue = CLLLC_pwmPeriod_pu;
-        #if CLLLC_INCR_BUILD == CLLLC_OPEN_LOOP_BUILD
-            #if CLLLC_SFRA_TYPE != CLLLC_SFRA_DISABLED
-                CLLLC_pwmPeriod_pu =
-                                CLLLC_SFRA_INJECT(CLLLC_pwmPeriodRef_pu);
-            #else
-                CLLLC_pwmPeriod_pu = CLLLC_pwmPeriodRef_pu;
-            #endif
-        #else
-            CLLLC_pwmPeriod_pu = CLLLC_pwmPeriodRef_pu;
-        #endif
+        CLLLC_pwmPeriod_pu = CLLLC_pwmPeriodRef_pu;
         if(CLLLC_pwmPeriod_pu < CLLLC_pwmPeriodMin_pu)
         {
             CLLLC_pwmPeriod_pu = CLLLC_pwmPeriodMin_pu;
